@@ -2,10 +2,67 @@
 export const documentRegistryAbi = [
   {
     type: 'function',
+    name: 'storeDocumentHash',
+    inputs: [
+      {
+        name: '_hash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+      {
+        name: '_timestamp',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: '_signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+      {
+        name: '_signer',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'verifyDocument',
+    inputs: [
+      {
+        name: '_hash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+      {
+        name: '_signer',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: '_signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [
+      {
+        name: 'isValid',
+        type: 'bool',
+        internalType: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'getDocumentInfo',
     inputs: [
       {
-        name: 'hash',
+        name: '_hash',
         type: 'bytes32',
         internalType: 'bytes32',
       },
@@ -22,40 +79,21 @@ export const documentRegistryAbi = [
             internalType: 'bytes32',
           },
           {
-            name: 'owner',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
             name: 'timestamp',
             type: 'uint256',
             internalType: 'uint256',
           },
           {
+            name: 'signer',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
             name: 'signature',
-            type: 'string',
-            internalType: 'string',
+            type: 'bytes',
+            internalType: 'bytes',
           },
         ],
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getDocumentSignature',
-    inputs: [
-      {
-        name: 'hash',
-        type: 'bytes32',
-        internalType: 'bytes32',
-      },
-    ],
-    outputs: [
-      {
-        name: 'signature',
-        type: 'string',
-        internalType: 'string',
       },
     ],
     stateMutability: 'view',
@@ -65,7 +103,7 @@ export const documentRegistryAbi = [
     name: 'isDocumentStored',
     inputs: [
       {
-        name: 'hash',
+        name: '_hash',
         type: 'bytes32',
         internalType: 'bytes32',
       },
@@ -81,39 +119,35 @@ export const documentRegistryAbi = [
   },
   {
     type: 'function',
-    name: 'storeDocument',
+    name: 'getDocumentCount',
+    inputs: [],
+    outputs: [
+      {
+        name: 'count',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getDocumentHashByIndex',
     inputs: [
+      {
+        name: '_index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    outputs: [
       {
         name: 'hash',
         type: 'bytes32',
         internalType: 'bytes32',
       },
-      {
-        name: 'signature',
-        type: 'string',
-        internalType: 'string',
-      },
     ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'storeMultiple',
-    inputs: [
-      {
-        name: 'hashes',
-        type: 'bytes32[]',
-        internalType: 'bytes32[]',
-      },
-      {
-        name: 'signatures',
-        type: 'string[]',
-        internalType: 'string[]',
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
+    stateMutability: 'view',
   },
   {
     type: 'event',
@@ -126,7 +160,7 @@ export const documentRegistryAbi = [
         internalType: 'bytes32',
       },
       {
-        name: 'owner',
+        name: 'signer',
         type: 'address',
         indexed: true,
         internalType: 'address',
@@ -139,22 +173,6 @@ export const documentRegistryAbi = [
       },
     ],
     anonymous: false,
-  },
-  {
-    type: 'error',
-    name: 'ArrayLengthMismatch',
-    inputs: [
-      {
-        name: 'hashesLength',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'signaturesLength',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
   },
   {
     type: 'error',
@@ -183,3 +201,10 @@ export const documentRegistryAbi = [
 export const DOCUMENT_REGISTRY_ADDRESS =
   (process.env.NEXT_PUBLIC_DOCUMENT_REGISTRY_ADDRESS as `0x${string}`) ||
   '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
+
+export interface Document {
+  hash: string
+  timestamp: bigint
+  signer: string
+  signature: string
+}

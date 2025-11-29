@@ -1,181 +1,314 @@
-# Document Registry dApp
+🚀 Document Registry dApp  
+DApp completa para **registro, firma ECDSA, verificación y consulta de documentos** en blockchain.
 
-Una aplicación descentralizada (dApp) completa para interactuar con el contrato inteligente `DocumentRegistry` usando Next.js, TypeScript, Tailwind CSS, Wagmi y viem.
+Una aplicación descentralizada que permite almacenar y verificar documentos en la blockchain usando un contrato inteligente propio (`DocumentRegistry`), construida con:
 
-## 📋 Requisitos
+- Next.js 14 (App Router)
+- React + TypeScript
+- **Ethers.js v6** (sin Wagmi)
+- Tailwind CSS
+- Foundry (Anvil)
 
-Antes de comenzar, asegúrate de tener instalado:
+🏁 Características Principales
 
-- **Node.js** (versión 18 o superior)
-- **npm** o **yarn**
-- **Anvil** (Foundry) corriendo en `http://127.0.0.1:8545`
-- El contrato `DocumentRegistry` desplegado en Anvil en la dirección:
-  ```
-  0x5FbDB2315678afecb367f032d93F642f64180aa3
-  ```
+- ✔ Registro seguro de documentos por **hash** en la blockchain
+- ✔ Firmas digitales **ECDSA** (se firma el hash del documento)
+- ✔ Verificación on‑chain de firmas usando `ecrecover`
+- ✔ Historial completo de documentos almacenados
+- ✔ Flujo completo: **Upload → Sign → Store → Verify → History**
+- ✔ Wallets derivadas automáticamente desde el **mnemonic de Anvil**
+- ✔ Integración total con Anvil (Foundry)
+- ✔ UI moderna y responsiva
+- ✔ Código modular y fácil de escalar
 
-## 🚀 Instalación
+📦 Requisitos
 
-1. Navega a la carpeta `dapp/`:
-   ```bash
-   cd dapp
-   ```
+Asegúrate de tener instalado:
 
-2. Instala las dependencias:
-   ```bash
-   npm install
-   ```
+Requisito	Versión
+Node.js	≥ 18
+npm o yarn	Cualquiera
+Foundry	anvil para red local
+MetaMask	Última versión
 
-## 🏃 Ejecución
+Además, necesitas Anvil corriendo en:
 
-Para iniciar el servidor de desarrollo:
+`http://127.0.0.1:8545`
 
+Y tu contrato `DocumentRegistry` desplegado en Anvil.
+
+**Nota:** La dirección del contrato puede variar según el despliegue.  
+Ejemplo de dirección típica al usar `DeployAnvil`:
+
+`0x5FbDB2315678afecb367f032d93F642f64180aa3`
+
+Si redesplegas el contrato, actualiza la dirección en `.env.local`.
+
+⚙️ Instalación
+
+1. **Instalar dependencias:**
+```bash
+cd dapp
+npm install
+```
+
+2. **Desplegar el contrato en Anvil (si aún no está desplegado):**
+```bash
+# Desde la raíz del proyecto
+cd sc
+forge script script/Deploy.s.sol:DeployAnvil --rpc-url http://127.0.0.1:8545 --broadcast
+```
+
+3. **Configurar variables de entorno:**
+
+Crea un archivo `.env.local` en la carpeta `dapp/` con la dirección del contrato desplegado:
+
+```env
+NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
+NEXT_PUBLIC_DOCUMENT_REGISTRY_ADDRESS=<dirección_del_contrato_desplegado>
+NEXT_PUBLIC_MNEMONIC=test test test test test test test test test test test junk
+```
+
+▶️ Ejecución de la dApp
+
+**Opción 1: Script automático (recomendado)**
+
+Windows (CMD/PowerShell):
+```bash
+cd dapp
+iniciar-demo.bat
+```
+
+Linux/Mac/WSL:
+```bash
+cd dapp
+./iniciar-demo.sh
+```
+
+El script verificará automáticamente:
+- ✅ Anvil está corriendo
+- ✅ Contrato desplegado
+- ✅ Dependencias instaladas
+- ✅ Abrirá el navegador automáticamente
+
+**Opción 2: Manual**
+
+Inicia el servidor de desarrollo:
 ```bash
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`.
+Luego visita: **http://localhost:3000**
 
-## 🔗 Configurar MetaMask para Anvil
+🔗 Configuración de MetaMask con Anvil
 
-Para conectar MetaMask a tu instancia local de Anvil:
+MetaMask no es estrictamente necesaria para que la dApp funcione (las wallets se derivan del mnemonic de Anvil y se usan con Ethers.js), pero es muy útil para inspeccionar transacciones y balances.
 
-1. **Abre MetaMask** y haz clic en el menú de redes (arriba a la izquierda).
+1. **Agregar red personalizada**
 
-2. **Selecciona "Add Network"** o "Agregar red".
+Abrir MetaMask → Networks → Add Network
 
-3. **Agrega una red personalizada** con los siguientes datos:
-   - **Network Name**: `Anvil Local`
-   - **RPC URL**: `http://127.0.0.1:8545`
-   - **Chain ID**: `31337`
-   - **Currency Symbol**: `ETH`
+Campo | Valor
+-----|------
+Network Name | Anvil Local
+RPC URL | `http://127.0.0.1:8545`
+Chain ID | `31337`
+Currency | `ETH`
 
-4. **Importa una cuenta de Anvil**:
-   - Cuando inicias Anvil, se muestran varias cuentas con sus private keys.
-   - En MetaMask, ve a "Import Account" (Importar cuenta).
-   - Pega una de las private keys de Anvil (por ejemplo, la primera cuenta que tiene 10000 ETH).
-   - Ahora tendrás acceso a esa cuenta en MetaMask.
+2. **Importar una cuenta de Anvil (opcional)**
 
-5. **Conecta la dApp**:
-   - Asegúrate de que Anvil esté corriendo.
-   - Abre la dApp en el navegador.
-   - Haz clic en "Connect Wallet" en la interfaz.
-   - MetaMask debería aparecer para confirmar la conexión.
+Desde tu terminal, Anvil muestra cuentas como:
 
-## 📝 Uso de la dApp
+- (0) `0xf39F...`  
+  Private Key: `0xac09...`
 
-### 1. Conectar Wallet
+En MetaMask: **Import Account → pegar private key**.
 
-- Haz clic en el botón "Connect Wallet" en la parte superior.
-- Acepta la conexión en MetaMask.
-- Verás tu dirección conectada y el balance de ETH.
+3. **Relación con la dApp**
 
-### 2. Registrar un Documento
+La dApp **no depende** de la extensión de MetaMask para firmar. En su lugar:
 
-1. En la tarjeta izquierda "Store Document":
-   - Ingresa el contenido del documento en el campo de texto.
-   - (Opcional) Ingresa una firma (por ejemplo, "firma-1").
-   - Haz clic en "Store Document".
+- Deriva 10 wallets usando `NEXT_PUBLIC_MNEMONIC` (el mnemonic de Anvil).
+- Ofrece un selector de wallet en el UI (Wallet 0–9).
+- Todas las firmas y transacciones se hacen con **Ethers.js v6**.
 
-2. La aplicación:
-   - Calcula automáticamente el hash `keccak256` del contenido.
-   - Muestra el hash calculado.
-   - Envía la transacción al contrato.
-   - Muestra el estado: loading, éxito o error.
-   - Si es exitoso, muestra el hash de la transacción.
+📝 Cómo usar la dApp
 
-### 3. Consultar un Documento
+1️⃣ Seleccionar Wallet
 
-1. En la tarjeta derecha "Get Document Info":
-   - Pega el hash del documento (formato: `0x...` con 64 caracteres hexadecimales).
-   - Haz clic en "Get Document Info".
+- En la parte superior, haz clic en **“Select Wallet”**.
+- Elige una wallet (`Wallet 0`, `Wallet 1`, etc.).
+- Verás el estado **Connected** y la dirección de la wallet.
 
-2. La aplicación mostrará:
-   - **Hash**: El hash del documento.
-   - **Owner**: La dirección que registró el documento.
-   - **Timestamp**: Fecha y hora de registro (formateada).
-   - **Signature**: La firma asociada (si existe).
+2️⃣ Subir y Firmar un Documento
 
-3. Si el documento no existe:
-   - Se mostrará un mensaje amigable indicando que el documento no fue encontrado.
+Pestaña **Upload & Sign**:
 
-## 🛠️ Scripts Disponibles
+- Haz clic en el área de upload o arrastra un archivo.
+- Se calcula automáticamente el **hash SHA‑256** del archivo.
+- Pulsa **“Sign Document”**.
+  - Se genera una firma ECDSA con la wallet seleccionada.
+  - Verás un mensaje: *“Document signed successfully!”*.
 
-- `npm run dev` - Inicia el servidor de desarrollo
-- `npm run build` - Construye la aplicación para producción
-- `npm run start` - Inicia el servidor de producción
-- `npm run lint` - Ejecuta el linter de código
+3️⃣ Guardar en la Blockchain
 
-## 📁 Estructura del Proyecto
+- Pulsa **“Store on Blockchain”**.
+- Se envía una transacción a `storeDocumentHash(hash, timestamp, signature, signer)`.
+- Cuando se confirma, verás:
+  - 🟢 *“Document stored successfully!”* y el **TX Hash**.
 
+4️⃣ Verificar un Documento
+
+Pestaña **Verify**:
+
+- Sube el mismo archivo o pega el hash manualmente.
+- Introduce la dirección del signer (por ejemplo, Wallet 0).
+- Pulsa **“Verify Document”**.
+
+La dApp:
+
+- Recupera la información con `getDocumentInfo(hash)`.
+- Llama a `verifyDocument(hash, signer, signature)` en el contrato.
+- Muestra:
+  - ✅ **Document is VALID** si la firma coincide.
+  - ❌ **Document is INVALID** si no existe o no coincide.
+
+5️⃣ Ver Historial de Documentos
+
+Pestaña **History**:
+
+- Pulsa **“Refresh”**.
+- La dApp llama a `getDocumentCount()` y `getDocumentHashByIndex()` para cada índice.
+- Recupera cada documento con `getDocumentInfo(hash)`.
+- Muestra:
+  - Hash
+  - Signer
+  - Timestamp (formateado)
+  - Tamaño de la firma (bytes)
+
+📁 Estructura del Proyecto
+
+`dapp/`
+
+- `app/`
+  - `layout.tsx` – Layout principal con `MetaMaskProvider`
+  - `page.tsx` – Página principal con tabs (**Upload & Sign / Verify / History**)
+  - `globals.css` – Estilos globales Tailwind
+- `components/`
+  - `FileUploader.tsx` – Subida de archivo y cálculo de hash
+  - `DocumentSigner.tsx` – Firma ECDSA y almacenamiento on‑chain
+  - `DocumentVerifier.tsx` – Verificación de documentos
+  - `DocumentHistory.tsx` – Historial completo de documentos
+  - `WalletSelector.tsx` – Selector de wallet derivada del mnemonic
+- `contexts/`
+  - `MetaMaskContext.tsx` – Deriva wallets desde `NEXT_PUBLIC_MNEMONIC` y expone `provider`, `signer`, etc.
+- `hooks/`
+  - `useContract.ts` – Hook de alto nivel para interactuar con `DocumentRegistry` usando Ethers.js v6
+- `lib/`
+  - `documentRegistry.ts` – Dirección del contrato + ABI completo
+- `.env.local` – Variables de entorno (no se sube a git)
+- `package.json` – Dependencias del proyecto
+- `tsconfig.json` – Configuración TypeScript
+- `next.config.js` – Configuración Next.js
+- `tailwind.config.js` – Configuración Tailwind CSS
+- `iniciar-dapp.bat` – Script básico para iniciar la dApp (Windows)
+- `iniciar-demo.bat` – Script completo para demo con verificaciones (Windows)
+- `iniciar-demo.sh` – Script completo para demo con verificaciones (Linux/Mac/WSL)
+- `crear-acceso-directo.vbs` – Script para crear acceso directo (Windows)
+- `clean-cache.sh` – Script para limpiar caché de Next.js
+- `README.md` – Este archivo
+- `TEST_RESULTS.md` – Resultados de pruebas
+- `FIX_CACHE.md` – Guía para solucionar problemas de caché
+
+🧠 Descripción del Contrato
+
+El contrato `DocumentRegistry` administra documentos por hash y firma ECDSA:
+
+- `storeDocumentHash(bytes32 _hash, uint256 _timestamp, bytes _signature, address _signer)`
+  - Guarda un documento único por hash.
+  - Registra:
+    - `hash` – hash del documento (`bytes32`).
+    - `timestamp` – marca de tiempo de registro.
+    - `signer` – dirección que firmó el documento.
+    - `signature` – firma ECDSA (`bytes`).
+  - Previene duplicados mediante el modificador `documentNotExists`.
+
+- `getDocumentInfo(bytes32 _hash) → Document`
+  - Devuelve la `struct Document` con:
+    - `hash`
+    - `timestamp`
+    - `signer`
+    - `signature`
+
+- `verifyDocument(bytes32 _hash, address _signer, bytes _signature) → bool`
+  - Verifica la firma ECDSA usando `ecrecover`.
+  - Devuelve `true` si:
+    - El documento existe.
+    - El signer recuperado coincide con `_signer` y con el signer almacenado.
+
+- `getDocumentCount()` y `getDocumentHashByIndex(uint256)`
+  - Permiten iterar sobre todos los documentos (se usan en la pestaña **History**).
+
+🧩 Variables de Entorno
+
+Crea (o actualiza) un archivo `.env.local` en la carpeta `dapp/` con:
+
+```env
+NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
+NEXT_PUBLIC_DOCUMENT_REGISTRY_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+NEXT_PUBLIC_MNEMONIC=test test test test test test test test test test test junk
 ```
-dapp/
-├── app/
-│   ├── layout.tsx          # Layout principal con WagmiProvider
-│   ├── page.tsx             # Página principal
-│   └── globals.css          # Estilos globales con Tailwind
-├── components/
-│   ├── WalletConnector.tsx  # Componente para conectar/desconectar wallet
-│   ├── StoreDocumentForm.tsx # Formulario para registrar documentos
-│   └── GetDocumentForm.tsx   # Formulario para consultar documentos
-├── lib/
-│   ├── web3.tsx              # Configuración de Wagmi y viem
-│   └── documentRegistry.ts  # ABI y dirección del contrato
-├── package.json
-├── tsconfig.json
-├── tailwind.config.js
-└── README.md
+
+**Importante:** Si redesplegas el contrato en Anvil, actualiza `NEXT_PUBLIC_DOCUMENT_REGISTRY_ADDRESS` con la nueva dirección.
+
+Para desplegar el contrato:
+```bash
+cd sc
+forge script script/Deploy.s.sol:DeployAnvil --rpc-url http://127.0.0.1:8545 --broadcast
 ```
 
-## 🔧 Configuración
+❗ Solución de Problemas
+❌ MetaMask no conecta
 
-### Dirección del Contrato
+Verifica que Anvil está corriendo
 
-La dirección del contrato se puede configurar mediante la variable de entorno:
+MetaMask debe estar en red 31337
+
+Revisa la consola del navegador
+
+❌ Error al guardar documento
+
+Intentas registrar el mismo hash dos veces
+
+Tu wallet no tiene ETH
+
+RPC incorrecto
+
+❌ Error al consultar
+
+Hash mal formateado
+
+Documento no existe
+
+❌ "Contract code is empty" o "returned no data"
+
+El contrato no está desplegado en la dirección configurada. Despliega el contrato:
 
 ```bash
-NEXT_PUBLIC_DOCUMENT_REGISTRY_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+cd sc
+forge script script/Deploy.s.sol:DeployAnvil --rpc-url http://127.0.0.1:8545 --broadcast
 ```
 
-Por defecto, usa la dirección: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+Luego actualiza la dirección en `.env.local` con la dirección mostrada en el output.
 
-### Chain y RPC
+📚 Tecnologías Utilizadas
 
-La aplicación está configurada para usar:
-- **Chain ID**: 31337 (Anvil)
-- **RPC URL**: `http://127.0.0.1:8545`
+- Next.js 14 (App Router)
+- React + TypeScript
+- **Ethers.js v6**
+- TailwindCSS
+- Foundry + Anvil
 
-Estos valores están configurados en `lib/web3.tsx`.
+📄 Licencia
 
-## 🐛 Solución de Problemas
-
-### MetaMask no se conecta
-
-- Asegúrate de que Anvil esté corriendo.
-- Verifica que MetaMask esté configurado para usar la red Anvil (Chain ID 31337).
-- Revisa la consola del navegador para ver errores.
-
-### Error al registrar documento
-
-- Verifica que tu wallet tenga suficiente ETH para gas.
-- Asegúrate de que el contrato esté desplegado en la dirección correcta.
-- Revisa que no estés intentando registrar un documento que ya existe.
-
-### Error al consultar documento
-
-- Verifica que el hash tenga el formato correcto (`0x` seguido de 64 caracteres hexadecimales).
-- Asegúrate de que el documento haya sido registrado previamente.
-
-## 📚 Tecnologías Utilizadas
-
-- **Next.js 14** - Framework React con App Router
-- **TypeScript** - Tipado estático
-- **Tailwind CSS** - Estilos utilitarios
-- **Wagmi v2** - Hooks de React para Ethereum
-- **viem** - Cliente Ethereum TypeScript
-- **@tanstack/react-query** - Manejo de estado del servidor
-
-## 📄 Licencia
-
-MIT
-
+MIT — Puedes usar, modificar y compartir libremente.

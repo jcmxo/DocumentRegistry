@@ -3,42 +3,44 @@ pragma solidity ^0.8.23;
 
 /**
  * @title DocumentRegistry
- * @notice Smart contract for registering and querying document hashes with metadata
- * @dev Allows users to register document hashes with owner, timestamp, and optional signature.
- *      Prevents duplicate registrations and provides efficient querying capabilities.
+ * @notice Smart contract for registering and verifying document hashes with ECDSA signatures
+ * @dev Optimized for gas efficiency by using signer != address(0) to check existence
+ *      Implements ECDSA signature verification for document authenticity
  */
 contract DocumentRegistry {
     /**
      * @notice Document structure storing all information about a registered document
      * @param hash The hash of the document (bytes32)
-     * @param owner The address that registered the document
      * @param timestamp The timestamp when the document was registered
-     * @param signature Optional signature string associated with the document
+     * @param signer The address that signed the document
+     * @param signature The ECDSA signature (bytes) of the document hash
      */
     struct Document {
         bytes32 hash;
-        address owner;
         uint256 timestamp;
-        string signature;
+        address signer;
+        bytes signature;
     }
 
     /**
      * @notice Mapping from document hash to Document struct
+     * @dev Using signer != address(0) to check existence (optimization)
      */
     mapping(bytes32 => Document) private documents;
 
     /**
-     * @notice Mapping to track if a document hash has been registered
+     * @notice Array to store all document hashes for iteration
+     * @dev Used for getDocumentCount() and getDocumentHashByIndex()
      */
-    mapping(bytes32 => bool) private documentExists;
+    bytes32[] private documentHashes;
 
     /**
      * @notice Emitted when a document is stored in the registry
      * @param hash The hash of the document
-     * @param owner The address that registered the document
+     * @param signer The address that signed the document
      * @param timestamp The timestamp when the document was registered
      */
-    event DocumentStored(bytes32 indexed hash, address indexed owner, uint256 timestamp);
+    event DocumentStored(bytes32 indexed hash, address indexed signer, uint256 timestamp);
 
     /**
      * @notice Custom error thrown when attempting to register a document that already exists
@@ -53,122 +55,134 @@ contract DocumentRegistry {
     error DocumentNotFound(bytes32 hash);
 
     /**
-     * @notice Custom error thrown when arrays in batch operation have mismatched lengths
-     * @param hashesLength Length of the hashes array
-     * @param signaturesLength Length of the signatures array
+     * @notice Modifier to ensure document does not already exist
+     * @param _hash The hash to check
      */
-    error ArrayLengthMismatch(uint256 hashesLength, uint256 signaturesLength);
+    modifier documentNotExists(bytes32 _hash) {
+        require(documents[_hash].signer == address(0), "Document already exists");
+        _;
+    }
+
+    /**
+     * @notice Modifier to ensure document exists
+     * @param _hash The hash to check
+     */
+    modifier documentExists(bytes32 _hash) {
+        require(documents[_hash].signer != address(0), "Document does not exist");
+        _;
+    }
 
     /**
      * @notice Stores a document hash with its metadata
-     * @param hash The hash of the document to register
-     * @param signature Optional signature string associated with the document
+     * @param _hash The hash of the document to register
+     * @param _timestamp The timestamp when the document was signed
+     * @param _signature The ECDSA signature (bytes) of the document hash
+     * @param _signer The address that signed the document
      * @dev Reverts if the document hash already exists (DocumentAlreadyExists)
      *      Follows checks-effects-interactions pattern
      */
-    function storeDocument(bytes32 hash, string calldata signature) external {
-        // Check: Verify document doesn't already exist
-        if (documentExists[hash]) {
-            revert DocumentAlreadyExists(hash);
-        }
-
+    function storeDocumentHash(
+        bytes32 _hash,
+        uint256 _timestamp,
+        bytes memory _signature,
+        address _signer
+    ) external documentNotExists(_hash) {
         // Effects: Update state before any external calls
-        documents[hash] = Document({
-            hash: hash,
-            owner: msg.sender,
-            timestamp: block.timestamp,
-            signature: signature
+        documents[_hash] = Document({
+            hash: _hash,
+            timestamp: _timestamp,
+            signer: _signer,
+            signature: _signature
         });
-        documentExists[hash] = true;
+        documentHashes.push(_hash);
 
         // Interactions: Emit event
-        emit DocumentStored(hash, msg.sender, block.timestamp);
+        emit DocumentStored(_hash, _signer, _timestamp);
+    }
+
+    /**
+     * @notice Verifies a document signature using ECDSA recovery
+     * @param _hash The hash of the document to verify
+     * @param _signer The address that should have signed the document
+     * @param _signature The signature to verify
+     * @return isValid True if the signature is valid, false otherwise
+     * @dev Uses ecrecover to verify ECDSA signature
+     */
+    function verifyDocument(
+        bytes32 _hash,
+        address _signer,
+        bytes memory _signature
+    ) external view returns (bool isValid) {
+        // Check if document exists
+        if (documents[_hash].signer == address(0)) {
+            return false;
+        }
+
+        // Recover the signer from the signature
+        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+
+        // Extract r, s, v from signature (65 bytes: 32 + 32 + 1)
+        if (_signature.length != 65) {
+            return false;
+        }
+
+        assembly {
+            r := mload(add(_signature, 32))
+            s := mload(add(_signature, 64))
+            v := byte(0, mload(add(_signature, 96)))
+        }
+
+        // Handle v values (27 or 28)
+        if (v < 27) {
+            v += 27;
+        }
+
+        // Recover the signer address
+        address recoveredSigner = ecrecover(messageHash, v, r, s);
+
+        // Verify the recovered signer matches the expected signer and stored signer
+        return (recoveredSigner == _signer && recoveredSigner == documents[_hash].signer && recoveredSigner != address(0));
     }
 
     /**
      * @notice Retrieves all information about a stored document
-     * @param hash The hash of the document to query
+     * @param _hash The hash of the document to query
      * @return document The Document struct containing all information
      * @dev Reverts if the document doesn't exist (DocumentNotFound)
      */
-    function getDocumentInfo(bytes32 hash) external view returns (Document memory document) {
-        // Check: Verify document exists
-        if (!documentExists[hash]) {
-            revert DocumentNotFound(hash);
-        }
-
-        return documents[hash];
-    }
-
-    /**
-     * @notice Retrieves the signature of a stored document
-     * @param hash The hash of the document to query
-     * @return signature The signature string associated with the document
-     * @dev Reverts if the document doesn't exist (DocumentNotFound)
-     */
-    function getDocumentSignature(bytes32 hash) external view returns (string memory signature) {
-        // Check: Verify document exists
-        if (!documentExists[hash]) {
-            revert DocumentNotFound(hash);
-        }
-
-        return documents[hash].signature;
-    }
-
-    /**
-     * @notice Stores multiple documents in a single transaction
-     * @param hashes Array of document hashes to register
-     * @param signatures Array of signature strings corresponding to each hash
-     * @dev Reverts if arrays have different lengths (ArrayLengthMismatch)
-     *      Reverts if any document hash already exists (DocumentAlreadyExists)
-     *      Follows checks-effects-interactions pattern
-     */
-    function storeMultiple(
-        bytes32[] calldata hashes,
-        string[] calldata signatures
-    ) external {
-        // Check: Verify arrays have the same length
-        if (hashes.length != signatures.length) {
-            revert ArrayLengthMismatch(hashes.length, signatures.length);
-        }
-
-        // Check: Verify none of the documents already exist
-        for (uint256 i = 0; i < hashes.length; ) {
-            if (documentExists[hashes[i]]) {
-                revert DocumentAlreadyExists(hashes[i]);
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Effects: Update state for all documents
-        uint256 currentTimestamp = block.timestamp;
-        for (uint256 i = 0; i < hashes.length; ) {
-            documents[hashes[i]] = Document({
-                hash: hashes[i],
-                owner: msg.sender,
-                timestamp: currentTimestamp,
-                signature: signatures[i]
-            });
-            documentExists[hashes[i]] = true;
-
-            // Interactions: Emit event for each document
-            emit DocumentStored(hashes[i], msg.sender, currentTimestamp);
-
-            unchecked {
-                ++i;
-            }
-        }
+    function getDocumentInfo(bytes32 _hash) external view documentExists(_hash) returns (Document memory document) {
+        return documents[_hash];
     }
 
     /**
      * @notice Checks if a document hash exists in the registry
-     * @param hash The hash to check
+     * @param _hash The hash to check
      * @return exists True if the document exists, false otherwise
+     * @dev Uses signer != address(0) for gas-efficient existence check
      */
-    function isDocumentStored(bytes32 hash) external view returns (bool exists) {
-        return documentExists[hash];
+    function isDocumentStored(bytes32 _hash) external view returns (bool exists) {
+        return documents[_hash].signer != address(0);
+    }
+
+    /**
+     * @notice Returns the total number of documents stored
+     * @return count The number of documents in the registry
+     */
+    function getDocumentCount() external view returns (uint256 count) {
+        return documentHashes.length;
+    }
+
+    /**
+     * @notice Returns the document hash at a specific index
+     * @param _index The index of the document (0-based)
+     * @return hash The document hash at the specified index
+     * @dev Reverts if index is out of bounds
+     */
+    function getDocumentHashByIndex(uint256 _index) external view returns (bytes32 hash) {
+        require(_index < documentHashes.length, "Index out of bounds");
+        return documentHashes[_index];
     }
 }
-

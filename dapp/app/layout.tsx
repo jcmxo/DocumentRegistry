@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { Web3Provider } from '@/lib/web3'
+import { MetaMaskProvider } from '@/contexts/MetaMaskContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Document Registry dApp',
-  description: 'Register and query document hashes on the blockchain',
+  description: 'Register and verify document hashes with ECDSA signatures on the blockchain',
 }
 
 export default function RootLayout({
@@ -18,9 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Web3Provider>
+        <MetaMaskProvider>
           {children}
-        </Web3Provider>
+        </MetaMaskProvider>
       </body>
     </html>
   )
